@@ -41,7 +41,7 @@ void init_pomo_prog(struct pomo_prog * p,
   p->win = w;
   p->button = b;
   p->seconds_remaining = 0;
-
+  p->state = BEGIN;
   return;
 }
 
@@ -65,30 +65,79 @@ void getClockString( int numsecs, char * strret){
 gboolean tick (gpointer data){
   struct pomo_prog * p = (struct pomo_prog *) data;
 
-  pp.seconds_remaining = (p->seconds_remaining - 1);
-  int cursecs = pp.seconds_remaining;
-
-  //check to make sure our number of seconds hasn't gone below 0
-  //  if(cursecs < 0){
-  //  return TRUE;
-  //}
-  char dispstring[128];
+  p->seconds_remaining = p->seconds_remaining >= 1 ? (p->seconds_remaining - 1) : 0;  
+  char dispstr[128];
   char windowstr[128];
-  getClockString( cursecs, dispstring);
+  char buttonstr[128];
+  switch (p->state)
+    {
+    case BEGIN:
+      sprintf(windowstr, "Pomodoro!");
+      sprintf(dispstr, "Ready?");
+      sprintf(buttonstr, "Go!");
+      break;
+    case POMODORO:
+      getClockString( p->seconds_remaining, dispstr);
+      sprintf(windowstr, "Pomodoro! - %s", dispstr);
+      sprintf(buttonstr, "Squash?");
+      if( 0 == p->seconds_remaining ){
+	p->state = POMO_TO_BREAK;
+      }
+      break;
+    case POMO_TO_BREAK:
+      sprintf(windowstr, "Break time!");
+      sprintf(dispstr, "Break!");
+      sprintf(buttonstr, "Begin");
+      break;
+    case BREAK:
+      getClockString( p->seconds_remaining, dispstr);
+      sprintf(windowstr, "Break! - %s", dispstr);
+      sprintf(buttonstr, "Enjoy your break!");
+      if( 0 == p->seconds_remaining ){
+	gtk_widget_set_sensitive( GTK_WIDGET(p->button), TRUE );
+	p->state = BEGIN;
+      }
+      break;
+    default:
+      break;
+    }
 
-  gtk_text_buffer_set_text(buf, dispstring, -1);
+
+  gtk_text_buffer_set_text(buf, dispstr, -1);
   
-  sprintf(windowstr, "Pomodoro! - %s", dispstring);
-
+  gtk_window_set_title( p->win, windowstr);
+  
+  gtk_button_set_label( p->button, buttonstr);
 
   return TRUE;
 
 }
 
 void click_event(GtkWidget * g, gpointer data ){
-  struct pomo_prog *p1 = (struct pomo_prog *)data;
-  p1->pomo_length = 25;
-  p1->seconds_remaining = p1->pomo_length * 60 + 1;
+  struct pomo_prog *p = (struct pomo_prog *)data;
+  switch( p->state) 
+    {
+    case BEGIN:
+      p->state = POMODORO;
+      p->seconds_remaining = 10; //p->pomo_length * 60 + 1;
+      break;
+    case POMODORO:
+      //when it's a Pomodoro, the button with say "squash?", so we transition back to begin
+      p->state = BEGIN;
+      p->seconds_remaining = 0;
+      break;
+    case BREAK:
+      //don't need to worry about the button when we're on break, it will be set as inactive
+      break;
+    case POMO_TO_BREAK:
+      p->state = BREAK;
+      p->seconds_remaining = 5;// p->break_length * 60 + 1;
+      gtk_widget_set_sensitive( GTK_WIDGET( p->button ), FALSE);
+      break;
+
+    default:
+      break; 
+    }
 
 }
 
