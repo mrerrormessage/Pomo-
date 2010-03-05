@@ -119,7 +119,7 @@ void click_event(GtkWidget * g, gpointer data ){
     {
     case BEGIN:
       p->state = POMODORO;
-      p->seconds_remaining = 10; //p->pomo_length * 60 + 1;
+      p->seconds_remaining = p->pomo_length * 60 + 1;
       break;
     case POMODORO:
       //when it's a Pomodoro, the button with say "squash?", so we transition back to begin
@@ -131,7 +131,7 @@ void click_event(GtkWidget * g, gpointer data ){
       break;
     case POMO_TO_BREAK:
       p->state = BREAK;
-      p->seconds_remaining = 5;// p->break_length * 60 + 1;
+      p->seconds_remaining = p->break_length * 60 + 1;
       gtk_widget_set_sensitive( GTK_WIDGET( p->button ), FALSE);
       break;
 
@@ -198,11 +198,9 @@ int main ( int argc, char ** argv ) {
 
   //click signal
   clickint = g_signal_connect( G_OBJECT(button) , "clicked", G_CALLBACK( click_event),(gpointer) &pp); 
-
   
   //miscellaneous
   gtk_builder_connect_signals( builder, NULL );
-
   
 
   //destroy builder
